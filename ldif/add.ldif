@@ -1,0 +1,7 @@
+dn: cn=John Xina,dc=example,dc=org
+changetype: add
+objectClass: inetOrgPerson
+cn: John Xina
+givenName: John
+sn: Xina
+mail: john.xina@example.org

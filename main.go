@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net"
 	"os"
@@ -42,7 +43,17 @@ func GenerateFakeData(amount int) []Person {
 	return people
 }
 
+type flags struct {
+	amount    int
+	noCleanup bool
+}
+
 func main() {
+	var f flags = flags{}
+	flag.IntVar(&f.amount, "amount", 10, "Amount of fake data to generate")
+	flag.BoolVar(&f.noCleanup, "no-cleanup", false, "Clean the database after the test")
+	flag.Parse()
+
 	fmt.Println(bold.Render("Connecting to LDAP server..."))
 	conn, err := net.Dial("tcp", "localhost:389")
 	if err != nil {
@@ -58,7 +69,7 @@ func main() {
 	handleErr(err)
 
 	fmt.Println(bold.Render("\nGenerating fake data..."))
-	people := GenerateFakeData(10)
+	people := GenerateFakeData(f.amount)
 
 	fmt.Println(bold.Render("\nAdding fake data..."))
 	err = addMany(ldapConnection, people)
@@ -133,14 +144,34 @@ func main() {
 	// Print the result
 	printResult(searchResult, false)
 
-	fmt.Println()
+	fmt.Println(bold.Render("\nUpdating person " + newPerson.FullName()))
+	err = modify(ldapConnection, newPerson, "givenName", "John2")
+	handleErr(err)
+	fmt.Printf("Person %s was updated\n", newPerson.FullName())
+
+	fmt.Println(bold.Render("\nSearching for updated person " + newPerson.FullName()))
+	searchResult, err = readSingle(ldapConnection, newPerson)
+	handleErr(err)
+	if len(searchResult.Entries) > 0 {
+		fmt.Printf("Person %s was found\n", newPerson.FullName())
+	} else {
+		fmt.Println(boldRed.Render("Person was not updated"))
+		return
+	}
+
+	// Print the result
+	printResult(searchResult, false)
 
 	// Wipe all data
-	err = removeMany(ldapConnection, people)
-	handleErr(err)
-	err = remove(ldapConnection, newPerson)
-	handleErr(err)
-	fmt.Println(bold.Render("\nAll data was removed"))
+	if !f.noCleanup {
+		err = removeMany(ldapConnection, people)
+		handleErr(err)
+		err = remove(ldapConnection, newPerson)
+		handleErr(err)
+		fmt.Println(bold.Render("\nAll data was removed"))
+	} else {
+		fmt.Println(bold.Render("\nSkipping cleanup"))
+	}
 }
 
 func handleErr(err error) {
@@ -195,6 +226,12 @@ func addMany(conn *ldap.Conn, people []Person) error {
 		}
 	}
 	return nil
+}
+
+func modify(conn *ldap.Conn, person Person, attr string, values ...string) error {
+	modifyRequest := ldap.NewModifyRequest(fmt.Sprintf("cn=%s,dc=example,dc=org", person.FullName()), nil)
+	modifyRequest.Replace(attr, values)
+	return conn.Modify(modifyRequest)
 }
 
 func remove(conn *ldap.Conn, person Person) error {

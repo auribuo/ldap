@@ -1,0 +1,8 @@
+dn: cn=John Xina,dc=example,dc=org
+changetype: modify
+replace: givenName
+givenName: John2
+-
+replace: sn
+sn: Xina2
+-
