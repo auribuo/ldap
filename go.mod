@@ -3,7 +3,7 @@ module github.com/auribuo/ldap
 go 1.20
 
 require (
-	github.com/charmbracelet/lipgloss v0.12.1
+	github.com/charmbracelet/lipgloss v0.13.0
 	github.com/go-ldap/ldap/v3 v3.4.8
 	github.com/icrowley/fake v0.0.0-20221112152111-d7b7e2276db2
 )
